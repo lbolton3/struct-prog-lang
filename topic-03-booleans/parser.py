@@ -78,10 +78,19 @@ def parse_factor(tokens):
     if tag == "-":
         node, tokens = parse_factor(tokens[1:])
         return create_node("negate", left=node), tokens
-    if tag == "!":
-        node, tokens = parse_factor(tokens[1:])
-        return create_node("not", left=node), tokens
-    raise Exception(f"Unexpected token: {tokens[0]}")
+    
+# logical_factor = relational_expression | "!" logical_factor
+    
+def parse_logical_factor(tokens):
+    token = tokens[0]
+    if token["tag"] == "!":
+        node, tokens = parse_logical_factor(tokens[1:])
+
+
+def parse_logical_expression(tokens):
+    node, tokens = parse_logical_term(tokens[1:])
+    
+
 
 
 def parse(tokens):
@@ -135,8 +144,7 @@ def test_relational_operators_parsing():
         tokens = tokenize(f"1+2{op}3*4")
         ast = parse(tokens)
         assert ast == {
-            "tag": op,
-            "value": None,
+
             "left": {
                 "tag": "+",
                 "value": None,
