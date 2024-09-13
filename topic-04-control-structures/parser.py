@@ -1,4 +1,6 @@
 """
+if_statement == "if" "(" logical_expression ")" statement
+while_statment == "while" "(" logical_expression ")" statement
 statement = assignment | expression
 assignment = identifier "=" expression
 arithmetic_expression = term { ("+" | "-") term }
@@ -17,9 +19,40 @@ def create_node(tag, left=None, right=None, value=None):
     return {"tag": tag, "value": value, "left": left, "right": right}
 
 
+def parse_if_statement(tokens):
+    # if_statement == "if" "(" logical_expression ")" statement
+    assert tokens[0]["tag"] == "if"
+    tokens = tokens[1:]
+    if tokens[0]["tag"] != "(":
+        raise Exception(f"Expected '(': {tokens[0]}")
+    condition, tokens = parse_logical_expression(tokens[1:])
+    if tokens[0]["tag"] != ")":
+        raise Exception(f"Expected '(': {tokens[0]}")
+    statement, tokens = parse_statement(tokens[1:])
+    return {"tag": "if", "condition": condition, "statement": statement}, tokens
+
+
+def parse_while_statement(tokens):
+    # while_statment == "while" "(" logical_expression ")" statement
+    assert tokens[0]["tag"] == "while"
+    tokens = tokens[1:]
+    if tokens[0]["tag"] != "(":
+        raise Exception(f"Expected '(': {tokens[0]}")
+    condition, tokens = parse_logical_expression(tokens[1:])
+    if tokens[0]["tag"] != ")":
+        raise Exception(f"Expected '(': {tokens[0]}")
+    statement, tokens = parse_statement(tokens[1:])
+    return {"tag": "while", "condition": condition, "statement": statement}, tokens
+
+
 def parse_statement(tokens):
+    tag = tokens[0]["tag"]
     # note: none of these consumes a token
-    if tokens[0]["tag"] == "identifier":
+    if tag == "if":
+        return parse_if_statement(tokens)
+    if tag == "while":
+        return parse_while_statement(tokens)
+    if tag == "identifier":
         if tokens[1]["tag"] == "=":
             return parse_assignment(tokens)
     return parse_logical_expression(tokens)
@@ -156,18 +189,14 @@ def test_simple_identifier_parsing():
         "right": {"tag": "identifier", "value": "y", "left": None, "right": None},
     }
 
+
 def test_boolean_parsing():
     print("test boolean parsing...")
-    for token_identifer in ["true","false"]:
+    for token_identifer in ["true", "false"]:
         tokens = tokenize(token_identifer)
         value = tokens[0]["value"]
         ast = parse(tokens)
-        assert ast == {
-            "tag": "boolean",
-            "value": value,
-            "left":  None, 
-            "right": None
-        }
+        assert ast == {"tag": "boolean", "value": value, "left": None, "right": None}
 
 
 def test_logical_operators_parsing():
@@ -242,7 +271,8 @@ def test_relational_operators_parsing():
         tokens = tokenize(f"1+2{op}3*4")
         ast = parse(tokens)
         assert ast == {
-
+            "tag": op,
+            "value": None,
             "left": {
                 "tag": "+",
                 "value": None,
@@ -383,6 +413,38 @@ def test_format_ast():
     )
 
 
+def test_if_statement():
+    print("test if statement...")
+    tokens = tokenize("if(1)x=1")
+    ast = parse(tokens)
+    assert ast == {
+        "tag": "if",
+        "condition": {"tag": "number", "value": 1, "left": None, "right": None},
+        "statement": {
+            "tag": "=",
+            "value": None,
+            "left": {"tag": "identifier", "value": "x", "left": None, "right": None},
+            "right": {"tag": "number", "value": 1, "left": None, "right": None},
+        },
+    }
+
+
+def test_while_statement():
+    print("test while statement...")
+    tokens = tokenize("while(1)x=1")
+    ast = parse(tokens)
+    assert ast == {
+        "tag": "while",
+        "condition": {"tag": "number", "value": 1, "left": None, "right": None},
+        "statement": {
+            "tag": "=",
+            "value": None,
+            "left": {"tag": "identifier", "value": "x", "left": None, "right": None},
+            "right": {"tag": "number", "value": 1, "left": None, "right": None},
+        },
+    }
+
+
 if __name__ == "__main__":
     test_simple_addition_parsing()
     test_simple_identifier_parsing()
@@ -393,4 +455,6 @@ if __name__ == "__main__":
     test_operator_precedence_parsing()
     test_assignment_parsing()
     test_boolean_parsing()
+    test_if_statement()
+    test_while_statement()
     print("done.")
